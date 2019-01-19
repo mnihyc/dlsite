@@ -1,0 +1,11 @@
+
+RewriteEngine On
+RewriteBase /
+
+RewriteCond %{REQUEST_URI}  !(\.php|\.htm|\.html|\.js|\.css)$
+RewriteRule .  /view.php [L]
+
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-l
+RewriteRule .  /view.php [L]
