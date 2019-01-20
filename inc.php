@@ -24,6 +24,13 @@
     if(IS_IN_PHP!==true)
         diemsg('Great job, you found one of my configuration files!!!<br /> (But actually that\'s useless.(wwwwww2333333');
 
+
+    /* Check if the two files/directories are the same */
+    function samefd($p1,$p2)
+    {
+        return (dirname($p1.'/1.b')===dirname($p2.'/2.c'));
+    }
+
     /* Execute scripts or show html pages */
     function commandefiles($path)
     {
@@ -92,7 +99,7 @@
                 else
                 {
                     $inpasswd=$arr[1];
-                    if($inpasswd!==$passwd || $arr[2]!==$opath)
+                    if($inpasswd!==$passwd || !samefd($arr[2],$opath))
                     {
                         $inpassver=true;
                         echo '<p class="lead text-center">Verification <span style="color: red;"><strong>failed</strong></span>.</p>';

@@ -11,6 +11,7 @@
         $inpassver=true;
         $vpos=strpos($opath,'?');
         $inpasswd=substr($opath,$vpos+1);
+        $oinpasswd=$inpasswd;
         $opath=substr($opath,0,$vpos);
     }
     filterpath($opath);
@@ -52,7 +53,7 @@
             $passtime=intval($arr[2]);
             
             /* Check whether it's valid */
-            if(abs(time()-$passtime)<=3600*24 && $arr[3]===$opath && ($passver==false || ($passver==true && $arr[1]===$passwd)))
+            if(abs(time()-$passtime)<=3600*24 && samefd($arr[3],$opath) && ($passver==false || ($passver==true && $arr[1]===$passwd)))
             {
                 if(abs(time()-$passtime)>=3600)
                 {
@@ -216,7 +217,7 @@
                 $ispd=is_dir($fpath);
                 
                 /* Construct the html code */
-                $outhtml.='<tr><td><p class="text-center" style="width:700px;">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="width:170px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:167px;"><a class="btn btn-dark" role="button" href="'.encodedir($fopath).'" target="_blank" style="width:64px;">Open</a></td></tr>';
+                $outhtml.='<tr><td><p class="text-center" style="width:700px;">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="width:170px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:167px;"><a class="btn btn-dark" role="button" href="'.encodedir($fopath).($passver ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '').'" target="_blank" style="width:64px;">Open</a></td></tr>';
             }
             $endhtml='<p class="lead text-center">Total elements: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; '.strval($elecnt).'</p>'.$endhtml;
             $outhtml.='</tbody></table></div>';
