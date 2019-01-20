@@ -187,7 +187,8 @@
         /* Show the main page */
         ob_start();
         htmlmsg();
-        echo '<h1 class="text-center">Directory of \''.htmlentities($opath).'\' ......</h1>';
+        $dna=explode('/',$opath);
+        echo '<h1 class="text-center">Directory of \''.htmlentities($dna[count($dna)-2].'/').'\' ......</h1>';
         if($passver)
             checkpassword($inpassver,$inpasswd,$passwd,$opath);
 ?>
