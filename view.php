@@ -192,7 +192,7 @@
         if($passver)
             checkpassword($inpassver,$inpasswd,$passwd,$opath);
 ?>
-        <div class="table-responsive">
+    <div class="table-responsive">
         <table class="table">
             <thead>
                 <tr>
@@ -218,7 +218,7 @@
                 $ispd=is_dir($fpath);
                 
                 /* Construct the html code */
-                $outhtml.='<tr><td><p class="text-center" style="width:700px;">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="width:170px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:167px;"><a class="btn btn-dark" role="button" href="'.encodedir($fopath).($passver ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '').'" target="_blank" style="width:64px;">Open</a></td></tr>';
+                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.encodedir($fopath).($passver ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '').'" target="_blank" style="width:64px;">Open</a></td></tr>';
             }
             $endhtml='<p class="lead text-center">Total elements: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; '.strval($elecnt).'</p>'.$endhtml;
             $outhtml.='</tbody></table></div>';
