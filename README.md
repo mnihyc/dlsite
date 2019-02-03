@@ -1,5 +1,6 @@
 # dlsite
 文件下载站点 dl.mnihyc.tk 的主要源代码  
+
 详细的设置可以在 inc.php 里面找到。
 # 关于密码
 .pass 文件为 ini-format  
