@@ -86,10 +86,13 @@
                 if($arr[0]==='dn')
                 {
                     header("Content-Disposition: attachment; filename=\"{$fname}\"");
-                    header("Conection: Close");
+                    //header("Connection: Close");
                 }
                 else
-                    header("Conection: Keep-Alive");
+                {
+                    header("Content-Disposition: inline; filename=\"{$fname}\"");
+                    //header("Connection: Keep-Alive");
+                }
                 header('Content-Transfer-Encoding: binary');
                 
                 /* Transfer data */
