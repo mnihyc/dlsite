@@ -166,8 +166,9 @@
         {
             $passver=true;
             $passwdarr=parse_ini_file($passpath);
+            // '\''->%27    '('->%28    ')'->%29
             $passwd=$passwdarr[$type];
-            if(!isset($passwd))
+            if(!isset($passwd) || strtolower($passwdarr['no'.$type])==='yes')
             {
                 $passver=false;
                 $checkm=false;
@@ -198,7 +199,7 @@
                 $passver=true;
                 $passwdarr=parse_ini_file($tspath);
                 $passwd=$passwdarr[$type];
-                if(!isset($passwd))
+                if(!isset($passwd) || strtolower($passwdarr['no'.$type])==='yes')
                     $passver=false;
                 break;
             }

@@ -132,6 +132,9 @@
                         <div class="container">
                             <p class="lead text-center">File path: &nbsp; &nbsp; &nbsp; &nbsp; <?php echo htmlentities($opath); ?></p>
                             <p class="lead text-center">File size: &nbsp; &nbsp; &nbsp; &nbsp; <?php echo getfilesize($path); ?></p>
+                            <?php $exs=getfilepass($opath,'fileextrainfo');if($exs!==FALSE){ ?>
+                            <p class="lead text-center">Extra information: &nbsp; &nbsp; &nbsp; &nbsp; <?php echo $exs; ?></p>
+                            <?php } ?>
                         </div>
                     </th>
                 </tr>
@@ -192,8 +195,12 @@
         htmlmsg();
         $dna=explode('/',$opath);
         echo '<h1 class="text-center">Directory of \''.htmlentities($dna[count($dna)-2].'/').'\' ......</h1>';
+        
+        $pswdtxt='';
+        ob_start( function($str){$GLOBALS['pswdtxt'].=$str; return '';} );
         if($passver)
             checkpassword($inpassver,$inpasswd,$passwd,$opath);
+        ob_end_flush();
 ?>
     <div class="table-responsive">
         <table class="table">
@@ -204,6 +211,11 @@
                             <p class="lead text-center">Directory path: &nbsp; &nbsp; &nbsp;<?php echo htmlentities($opath); ?></p>
 <?php
         $endhtml='</div></th></tr></thead><tbody></tbody></table></div>';
+        $exs=getdirpass($opath,'dirextrainfo');
+        if($exs===FALSE)
+            $exs='';
+        else
+            $exs='<p class="lead text-center">Extra information: &nbsp; &nbsp; &nbsp; &nbsp; '.$exs.'</p>';
         /* Have passed the verification, so show the elements inside */
         if(!$passver || ($passver && !$inpassver))
         {
@@ -223,14 +235,16 @@
                 /* Construct the html code */
                 $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.encodedir($fopath).($passver ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '').'" target="_blank" style="width:64px;">Open</a></td></tr>';
             }
-            $endhtml='<p class="lead text-center">Total elements: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; '.strval($elecnt).'</p>'.$endhtml;
+            $endhtml='<p class="lead text-center">Total elements: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; '.strval($elecnt).'</p>'.$exs.$endhtml;
             $outhtml.='</tbody></table></div>';
         }
-        echo $endhtml.$outhtml;
+        else
+            $endhtml=$exs.$endhtml;
+        echo $endhtml.$pswdtxt.$outhtml;
         htmlmsg(false);
     }
     else
         diemsg('The file/directory doesn\'t exist!');
     
-    ob_flush();
+    ob_end_flush();
 ?>
