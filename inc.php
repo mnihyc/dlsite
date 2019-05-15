@@ -12,10 +12,10 @@
     define(DEF_PASS,'123456');
     
     /* The token of downloading files */
-    define(DEF_DOWN,'"7891011');
+    define(DEF_DOWN,'7891011');
     
     /* Buffer size of downloading */
-    define(READ_BS,1024*1024);
+    define(READ_BS,1024*64);
     
     /* Password file of a directory */
     define(DIRPASS_NAME,'/.pass');
@@ -39,7 +39,7 @@
             require $path;
             die();
         }
-        if(substr($path,-5)==='.html' || substr($path,-3)==='.js')
+        if(substr($path,-5)==='.html' || substr($path,-3)==='.js' || substr($path,-4)==='.css')
         {
             echo file_get_contents($path);
             die();
@@ -173,6 +173,11 @@
                 $passver=false;
                 $checkm=false;
             }
+            else if(isset($passwdarr['cur'.$type]))
+                {
+                    $passver=true;
+                    $passwd=urldecode($passwdarr['cur'.$type]);
+                }
             else
                 $passwd=urldecode($passwd);
         }
@@ -188,7 +193,7 @@
     /* Read the password in all sub-directory */
     function getdirpass($tpath,$type='dirpass')
     {
-        $first=false;
+        $first=false;$pathfirst=true;
         while(!empty($tpath) && !$first)
         {
             if($tpath==='/')
@@ -201,9 +206,15 @@
                 $passwd=$passwdarr[$type];
                 if(!isset($passwd) || strtolower($passwdarr['no'.$type])==='yes')
                     $passver=false;
+                if($pathfirst && isset($passwdarr['cur'.$type]))
+                {
+                    $passver=true;
+                    $passwd=$passwdarr['cur'.$type];
+                }
                 break;
             }
             $tpath=dirname($tpath);
+            $pathfirst=false;
         }
         return ($passver==false ? FALSE : urldecode($passwd));
     }
