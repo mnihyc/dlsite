@@ -328,6 +328,9 @@
     }
     else if(is_dir($path))
     {
+        if(SHOWDEFPAGE && !$inpassver)
+            commandedir($path);
+        
         /* Filter the directory */
         if(substr($opath,-1)!=='/')
         {

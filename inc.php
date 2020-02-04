@@ -9,16 +9,19 @@
     define('FILE_DIR','/dl');
     
     /* The token of password verification */
-    define('DEF_PASS','12345');
+    define('DEF_PASS','123456');
     
     /* The token of downloading files */
-    define('DEF_DOWN','"678910');
+    define('DEF_DOWN','789101112');
     
     /* Buffer size of downloading */
     define('READ_BS',1024*64);
     
     /* Configuration file to save */
     define('CONFIG_FILE','/db.sqlite');
+    
+    /* Show the content of index.html if exists */
+    define('SHOWDEFPAGE',true);
     
     /* Encrypted password of the management page */
     /* The way to compute: md5(md5(PSWD).'+'.sha1(PSWD)) */
@@ -50,6 +53,21 @@
             || substr($path,-4)==='.htm')
         {
             echo file_get_contents($path);
+            die();
+        }
+    }
+    
+    /* Execute default scripts or pages */
+    function commandedir($path)
+    {
+        if(file_exists($path.'/index.php'))
+        {
+            require $path.'/index.php';
+            die();
+        }
+        if(file_exists($path.'/index.html'))
+        {
+            echo file_get_contents($path.'/index.html');
             die();
         }
     }
