@@ -1,37 +1,44 @@
 <?php
-    /* Set envirenment to chinese */
+    /* Set local envirenment to Chinese */
     setlocale(LC_ALL,'zh_CN.UTF8');
 
     /* Directory of these two .php files(/ as webroot) */
-    define(ROOT_DIR,'');
+    define('ROOT_DIR','');
     
     /* Directory of the main folder(/ as webroot) */
-    define(FILE_DIR,'/dl');
+    define('FILE_DIR','/dl');
     
     /* The token of password verification */
-    define(DEF_PASS,'123456');
+    define('DEF_PASS','12345');
     
     /* The token of downloading files */
-    define(DEF_DOWN,'7891011');
+    define('DEF_DOWN','"678910');
     
     /* Buffer size of downloading */
-    define(READ_BS,1024*64);
+    define('READ_BS',1024*64);
     
-    /* Password file of a directory */
-    define(DIRPASS_NAME,'/.pass');
+    /* Configuration file to save */
+    define('CONFIG_FILE','/db.sqlite');
     
+    /* Encrypted password of the management page */
+    /* The way to compute: md5(md5(PSWD).'+'.sha1(PSWD)) */
+    /* Default value 7f6d747029adeefe073804e34b089020 means blank password */
+    define('MANAGE_PASSWORD','7f6d747029adeefe073804e34b089020');
     
-    if(IS_IN_PHP!==true)
-        diemsg('Great job, you found one of my configuration files!!!<br /> (But actually that\'s useless.(wwwwww2333333');
+    /* Abandoned */
+    //define('DIRPASS_NAME','/.pass');
 
+    $db=NULL;
+    $o_header=false;
 
     /* Check if the two files/directories are the same */
     function samefd($p1,$p2)
     {
+        filterpath($p1);filterpath($p2);
         return (dirname($p1.'/1.b')===dirname($p2.'/2.c'));
     }
 
-    /* Execute scripts or show html pages */
+    /* Execute necessary scripts or show html pages */
     function commandefiles($path)
     {
         if(substr($path,-4)==='.php')
@@ -39,7 +46,8 @@
             require $path;
             die();
         }
-        if(substr($path,-5)==='.html' || substr($path,-3)==='.js' || substr($path,-4)==='.css')
+        if(substr($path,-5)==='.html' || substr($path,-3)==='.js' || substr($path,-4)==='.css'
+            || substr($path,-4)==='.htm')
         {
             echo file_get_contents($path);
             die();
@@ -63,6 +71,70 @@
         foreach($arr as $key => $val)
             $str.=('/'.urlencode($val));
         return $str;
+    }
+    
+    /* Check the password of the management page */
+    function checkmanagepassword()
+    {
+?>
+<div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="d-table-cell">
+                        <div class="container">
+                            <p class="lead text-center">A <strong>password</strong> verification is required to access this page. <br></p>
+<?php
+        $passvld=true;
+        if(isset($_POST['manage']))
+        {
+            $_SESSION['manage']=$_POST['manage'];
+            $_SESSION['expired']=time();
+        }
+        
+        if(md5(md5($_SESSION['manage']).'+'.sha1($_SESSION['manage']))!==MANAGE_PASSWORD && abs(time()-$_SESSION['expired'])<3600)
+        {
+            $passvld=false;
+            echo '<p class="lead text-center">Verification <span style="color: red;"><strong>expired</strong></span>.</p>';
+        }
+        else if(abs(time()-$_SESSION['expired'])>=3600)
+        {
+            $passvld=false;
+            echo '<p class="lead text-center">Verification <span style="color: red;"><strong>failed</strong></span>.</p>';
+        }
+        else
+        {
+            $passvld=true;
+            echo '<p class="lead text-center">Verification <span style="color: green;"><strong>passed</strong></span>.</p>';
+        }
+        if(!$passvld)
+        {
+?>
+<form action="#" method="post">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width:432px;"><input class="form-control d-table ml-auto text-center" type="password" name="manage" autofocus="" autocomplete="off" style="width:441px;"></th>
+                    <th style="width:191px;"><button class="btn btn-dark" type="submit">Verify</button></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</form>
+<?php
+        }
+?>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+<?php
+        return $passvld;
     }
     
     /* Check for the verification */
@@ -99,7 +171,7 @@
                 else
                 {
                     $inpasswd=$arr[1];
-                    if($inpasswd!==$passwd || !samefd($arr[2],$opath))
+                    if(($inpasswd!==$passwd && md5(md5($arr[1]).'+'.sha1($arr[1]))!==MANAGE_PASSWORD) || !samefd($arr[2],$opath))
                     {
                         $inpassver=true;
                         echo '<p class="lead text-center">Verification <span style="color: red;"><strong>failed</strong></span>.</p>';
@@ -128,7 +200,7 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width:432px;"><input class="form-control d-table ml-auto" type="password" name="pass" autofocus="" autocomplete="off" style="width:441px;"></th>
+                    <th style="width:432px;"><input class="form-control d-table ml-auto text-center" type="password" name="pass" autofocus="" autocomplete="off" style="width:441px;"></th>
                     <th style="width:191px;"><button class="btn btn-dark" type="submit">Verify</button></th>
                 </tr>
             </thead>
@@ -152,32 +224,92 @@
     /* Check whether a file is accessible */
     function invalidfilename($name)
     {
-        if(substr(basename($name),-5)==='.pass' || substr(basename($name),0,1)==='.')
+        if(basename($name)==='.htaccess')
+            return true;
+        /* Self-protection */
+        if(samefd($name,dirname(__FILE__).'/inc.php') || samefd($name,dirname(__FILE__).'/view.php')
+            || samefd($name,dirname(__FILE__).CONFIG_FILE))
             return true;
         return false;
     }
-
-    /* Read the password of a file */
+    
+    class Database extends SQLite3
+    {
+        function __construct()
+        {
+            $dbfile=dirname(__FILE__).CONFIG_FILE;
+            $this->open($dbfile);
+        }
+        public function execwf($sql)
+        {
+            $ret=$this->exec($sql);
+            if(!$ret)
+                diemsg($sql.'<br />SQL Halt: '.$this->lastErrorMsg());
+        }
+        public function queryarr($sql)
+        {
+            $ret=$this->query($sql);
+            if(!$ret)
+                diemsg($sql.'<br />SQL Halt: '.$this->lastErrorMsg());
+            $arr=array();
+            while($row=$ret->fetchArray(SQLITE3_ASSOC))
+                array_push($arr,$row);
+            return $arr;
+        }
+    }
+    
+    function opendb()
+    {
+        $dbfile=dirname(__FILE__).CONFIG_FILE;
+        if(!file_exists($dbfile))
+            $init=true;
+        global $db;
+        $db=new Database();
+        if(!$db)
+            diemsg('Unable to open the database set in the configuration file!');
+        if($init)
+        {
+            $sql =<<<EOF
+                CREATE TABLE CONFIG
+                (
+                NAME           NTEXT   NOT NULL,
+                TYPE           NTEXT   NOT NULL,
+                VALUE          NTEXT   NOT NULL,
+                PRIMARY KEY (NAME,TYPE));
+EOF;
+            $db->execwf($sql);
+        }
+    }
+    
+    /* Get an array of TYPEs<->VALUEs in specific NAME */
+    function getdbtypes($name)
+    {
+        global $db;
+        $arr=$db->queryarr('SELECT TYPE,VALUE FROM CONFIG WHERE NAME=\''.$db->escapeString($name).'\'');
+        $ret=array();
+        foreach($arr as $key => $val)
+            $ret[$val['TYPE']]=$val['VALUE'];
+        return $ret;
+    }
+    
+    /* Read the password/... of a file */
     function getfilepass($opath,$type='filepass')
     {
-        $passpath=dirname(__FILE__).FILE_DIR.$opath.'.pass';
+        $passwdarr=getdbtypes($opath);
         $passver=false;$passwd='';$checkm=true;
-        if(file_exists($passpath))
+        if(count($passwdarr))
         {
             $passver=true;
-            $passwdarr=parse_ini_file($passpath);
-            // '\''->%27    '('->%28    ')'->%29
             $passwd=$passwdarr[$type];
-            if(!isset($passwd) || strtolower($passwdarr['no'.$type])==='yes')
-            {
+            if(!isset($passwd))
                 $passver=false;
-                $checkm=false;
-            }
+            if(strtolower($passwdarr['no'.$type])==='yes')
+                $passver=$checkm=false;
             else if(isset($passwdarr['cur'.$type]))
-                {
-                    $passver=true;
-                    $passwd=urldecode($passwdarr['cur'.$type]);
-                }
+            {
+                $passver=true;
+                $passwd=urldecode($passwdarr['cur'.$type]);
+            }
             else
                 $passwd=urldecode($passwd);
         }
@@ -190,7 +322,7 @@
         return ($passver==false ? FALSE : $passwd);
     }
     
-    /* Read the password in all sub-directory */
+    /* Read the password/... in all sub-directory */
     function getdirpass($tpath,$type='dirpass')
     {
         $first=false;$pathfirst=true;
@@ -198,11 +330,12 @@
         {
             if($tpath==='/')
                 $first=true;
-            $tspath=dirname(__FILE__).FILE_DIR.$tpath.DIRPASS_NAME;
-            if(file_exists($tspath))
+            if(substr($tpath,-1,1)!=='/')
+                $tpath.='/';
+            $passwdarr=getdbtypes($tpath);
+            if(count($passwdarr))
             {
                 $passver=true;
-                $passwdarr=parse_ini_file($tspath);
                 $passwd=$passwdarr[$type];
                 if(!isset($passwd) || strtolower($passwdarr['no'.$type])==='yes')
                     $passver=false;
@@ -211,7 +344,8 @@
                     $passver=true;
                     $passwd=$passwdarr['cur'.$type];
                 }
-                break;
+                if($passver)
+                    break;
             }
             $tpath=dirname($tpath);
             $pathfirst=false;
@@ -291,10 +425,14 @@
     /* Output an error message */
     function diemsg($msg='An unknown error occurs.')
     {
-        htmlmsg();
+        global $o_header;
+        if(!$o_header)
+            htmlmsg();
         echo '<h1 class="text-center" style="margin:46px;">'.$msg.'</h1>';
-        echo '<p class="lead text-right" style="padding:25px;margin:0px;">Need support? Please contant the server administrator at mnihyc@qq.com ......</p>';
+        echo '<p class="lead text-right" style="padding:25px;margin:0px;">Need support? Please contant the server administrator at rmnihyc@gmail.com ......</p>';
         htmlmsg(false);
+        if($db)
+            $db->close();
         die();
     }
     
@@ -302,7 +440,11 @@
     function htmlmsg($header=true)
     {
         if($header)
-        {header("Pragma: no-cache");?>
+        {
+            header("Pragma: no-cache");
+            global $o_header;
+            $o_header=true;
+?>
 <!DOCTYPE html>
 <!-- Code by mnihyc -->
 <html>
@@ -317,6 +459,12 @@
     <body>
         <script src="<?php echo ROOT_DIR ?>/assets/js/jquery.min.js"></script>
         <script src="<?php echo ROOT_DIR ?>/assets/bootstrap/js/bootstrap.min.js"></script>
+        <script>
+            window.onload=function()
+            {
+                $("#itsql").focus();
+            }
+        </script>
     
         <?php }
         else
