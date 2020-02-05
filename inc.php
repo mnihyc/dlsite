@@ -353,16 +353,18 @@ EOF;
             $passwdarr=getdbtypes($tpath);
             if(count($passwdarr))
             {
-                $passver=true;
+                $passver=$cont=true;
                 $passwd=$passwdarr[$type];
-                if(!isset($passwd) || strtolower($passwdarr['no'.$type])==='yes')
+                if(!isset($passwd))
                     $passver=false;
+                if(strtolower($passwdarr['no'.$type])==='yes')
+                    $passver=$cont=false;
                 if($pathfirst && isset($passwdarr['cur'.$type]))
                 {
                     $passver=true;
                     $passwd=$passwdarr['cur'.$type];
                 }
-                if($passver)
+                if($passver || !$cont)
                     break;
             }
             $tpath=dirname($tpath);
