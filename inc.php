@@ -323,16 +323,16 @@ EOF;
                 $passver=false;
             if(strtolower($passwdarr['no'.$type])==='yes')
                 $passver=$checkm=false;
-            else if(isset($passwdarr['cur'.$type]))
+            if(isset($passwdarr['cur'.$type]))
             {
                 $passver=true;
-                $passwd=urldecode($passwdarr['cur'.$type]);
+                $passwd=$passwdarr['cur'.$type];
             }
-            else
-                $passwd=urldecode($passwd);
+            if(strtolower($passwdarr['nocur'.$type])==='yes')
+                $passver=$checkm=false;
         }
         if(!$passver && $checkm)
-            $passwd=getdirpass(dirname($opath),$type);
+            $passwd=getdirpass(dirname($opath),$type,true);
         if(!isset($passwd) || $passwd===FALSE)
             $passver=false;
         else
@@ -341,7 +341,7 @@ EOF;
     }
     
     /* Read the password/... in all sub-directory */
-    function getdirpass($tpath,$type='dirpass')
+    function getdirpass($tpath,$type='dirpass',$ispar=false)
     {
         $first=false;$pathfirst=true;
         while(!empty($tpath) && !$first)
@@ -364,13 +364,22 @@ EOF;
                     $passver=true;
                     $passwd=$passwdarr['cur'.$type];
                 }
+                if($pathfirst && strtolower($passwdarr['nocur'.$type])==='yes')
+                    $passver=$cont=false;
+                if((!$pathfirst || $ispar) && isset($passwdarr['sub'.$type]))
+                {
+                    $passver=true;
+                    $passwd=$passwdarr['sub'.$type];
+                }
+                if((!$pathfirst || $ispar) && strtolower($passwdarr['subno'.$type])==='yes')
+                    $passver=$cont=false;
                 if($passver || !$cont)
                     break;
             }
             $tpath=dirname($tpath);
             $pathfirst=false;
         }
-        return ($passver==false ? FALSE : urldecode($passwd));
+        return ($passver==false ? FALSE : $passwd);
     }
 
     /* Encrypt the string */

@@ -64,7 +64,7 @@
             
             if(is_dir(dirname(__FILE__).FILE_DIR.$opath) && substr($opath,-1,1)!=='/')
                 $opath.='/';
-            $qsql='SELECT NAME,TYPE,VALUE FROM CONFIG WHERE NAME=\''.$db->escapeString($opath).'\'';
+            $qsql='SELECT NAME,TYPE,VALUE FROM CONFIG WHERE NAME LIKE \''.$db->escapeString($opath).'%\'';
             if(isset($_POST['sql']) && !empty($_POST['sql']))
                 $qsql=$_POST['sql'];
             $qnamei=$opath;
@@ -388,7 +388,7 @@
                 
                 /* Construct the html code */
                 /* There's nothing wrong so I don't need to optimize it */
-                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.encodedir($fopath).($passver ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '').'"'/*.'target="_blank"'*/.' style="width:64px;">Open</a></td></tr>';
+                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.encodedir($fopath).($passver ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '').'" target="" style="width:64px;">Open</a></td></tr>';
             }
             $endhtml='<p class="lead text-center">Total elements: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; '.strval($elecnt).'</p>'.$exs.$endhtml;
             $outhtml.='</tbody></table></div>';
