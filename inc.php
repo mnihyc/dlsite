@@ -110,20 +110,24 @@
             $_SESSION['expired']=time();
         }
         
-        if(md5(md5($_SESSION['manage']).'+'.sha1($_SESSION['manage']))!==MANAGE_PASSWORD && abs(time()-$_SESSION['expired'])<3600)
+        if(abs(time()-$_SESSION['expired'])>=3600)
         {
             $passvld=false;
             echo '<p class="lead text-center">Verification <span style="color: red;"><strong>expired</strong></span>.</p>';
         }
-        else if(abs(time()-$_SESSION['expired'])>=3600)
-        {
-            $passvld=false;
-            echo '<p class="lead text-center">Verification <span style="color: red;"><strong>failed</strong></span>.</p>';
-        }
         else
         {
-            $passvld=true;
-            echo '<p class="lead text-center">Verification <span style="color: green;"><strong>passed</strong></span>.</p>';
+            if(md5(md5($_SESSION['manage']).'+'.sha1($_SESSION['manage']))===MANAGE_PASSWORD)
+            {
+                $passvld=true;
+                echo '<p class="lead text-center">Verification <span style="color: green;"><strong>passed</strong></span>.</p>';
+                
+            }
+            else
+            {
+                $passvld=false;
+                echo '<p class="lead text-center">Verification <span style="color: red;"><strong>failed</strong></span>.</p>';
+            }
         }
         if(!$passvld)
         {
