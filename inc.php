@@ -176,6 +176,8 @@
             if(substr($inpasswd,0,5)==='pass=')
             {
                 $inpasswd=substr($inpasswd,5);
+                if(empty($inpasswd))
+                    $inpasswd=$_POST['pass'];
                 ob_end_clean();
                 header('Location: '.encodedir(ROOT_DIR.$opath).'?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$opath,'E',DEF_PASS)),TRUE,301);
                 die();
@@ -217,7 +219,7 @@
         if($inpassver)
         {
 ?>
-<form action="<?php echo encodedir(ROOT_DIR.$opath); ?>">
+<form action="<?php echo encodedir(ROOT_DIR.$opath); ?>?pass=" method="post">
     <div class="table-responsive">
         <table class="table">
             <thead>
