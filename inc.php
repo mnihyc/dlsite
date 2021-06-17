@@ -1,13 +1,19 @@
 <?php
+    /* The default value is recommended except tokens and passwords. */
+    /* NOTICE: '/assets/', '/view', '/down', '/manage' are reserved and
+    can NOT be used as file/dirname (or otherwise they will be inaccessible). */
+    /* NOTICE: file/dirname can't contain the character '|'. */
+    
     /* Set local envirenment to Chinese */
     setlocale(LC_ALL,'zh_CN.UTF8');
 
-    /* Directory of these two .php files(/ as webroot) */
+    /* Directory of two .php files(/ as webroot) */
     define('ROOT_DIR','');
     
     /* Directory of the main folder(/ as webroot) */
     define('FILE_DIR','/dl');
     
+    /* NOTICE: The following two tokens must be DIFFERENT. */
     /* The token of password verification */
     define('DEF_PASS','123456');
     
@@ -22,6 +28,22 @@
     
     /* Show the content of index.html if exists */
     define('SHOWDEFPAGE',true);
+    
+    /* Prefer legacy ways of processing parameters */
+    /* Legacy: /[filepath]?[para] */
+    /* New: /[method]?[para] which reduces URI length greatly */
+    define('OLDSTYLE_PATH',false);
+    
+    /* Whether support new ways of processing parameters */
+    /* Available when OLDSTYLE_PATH is set to true */
+    define('SUPPORT_NEWPATH',true);
+    
+    /* Redirect to whether 'view' or 'down' when a direct path is accessed */
+    /* Available when OLDSTYLE_PATH is set to true */
+    define('REDIRECT_OLDPATH','view');
+    
+    /* Displayed when an error occurs */
+    define('ADMIN_EMAIL','YOUR_EMAIL');
     
     /* Encrypted password of the management page */
     /* The way to compute: md5(md5(PSWD).'+'.sha1(PSWD)) */
@@ -106,18 +128,20 @@
         $passvld=true;
         if(isset($_POST['manage']))
         {
-            $_SESSION['manage']=$_POST['manage'];
+            $_SESSION['manage']=gethashedpass($_POST['manage']);
             $_SESSION['expired']=time();
         }
         
-        if(abs(time()-$_SESSION['expired'])>=3600)
+        if(!isset($_SESSION['expired']))
+            $passvld=false;
+        else if(abs(time()-$_SESSION['expired'])>=3600*24)
         {
             $passvld=false;
             echo '<p class="lead text-center">Verification <span style="color: red;"><strong>expired</strong></span>.</p>';
         }
         else
         {
-            if(md5(md5($_SESSION['manage']).'+'.sha1($_SESSION['manage']))===MANAGE_PASSWORD)
+            if($_SESSION['manage']===MANAGE_PASSWORD)
             {
                 $passvld=true;
                 echo '<p class="lead text-center">Verification <span style="color: green;"><strong>passed</strong></span>.</p>';
@@ -160,7 +184,7 @@
     }
     
     /* Check for the verification */
-    function checkpassword(&$inpassver,&$inpasswd,$passwd,$opath)
+    function checkpassword(&$inpassver,&$inpasswd,$passwd,$opath,$isdd=false)
     {
 ?>
 <div class="table-responsive">
@@ -173,13 +197,13 @@
 <?php
         if($inpassver)
         {
-            if(substr($inpasswd,0,5)==='pass=')
+            if(isset($_POST['pass']))
             {
-                $inpasswd=substr($inpasswd,5);
-                if(empty($inpasswd))
-                    $inpasswd=$_POST['pass'];
+                /* Do not save (inputed) cleartext password under any circumstances */
+                $inpasswd=gethashedpass($_POST['pass']);
                 ob_end_clean();
-                header('Location: '.encodedir(ROOT_DIR.$opath).'?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$opath,'E',DEF_PASS)),TRUE,301);
+                /* Generate view/down link by $isdd (direct link) */
+                header('Location: '.(OLDSTYLE_PATH?encodedir(ROOT_DIR.$opath):'view').'?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$opath,'E',DEF_PASS)),TRUE,301);
                 die();
             }
             $inpasswd=encrypt($inpasswd,'D',DEF_PASS);
@@ -187,7 +211,7 @@
             {
                 $arr=explode('|',$inpasswd);
                 $passtime=intval($arr[0]);
-                if(abs(time()-$passtime)>=3600)
+                if(abs(time()-$passtime)>3600*24)
                 {
                     $inpassver=true;
                     echo '<p class="lead text-center">Verification <span style="color: red;"><strong>expired</strong></span>.</p>';
@@ -195,7 +219,7 @@
                 else
                 {
                     $inpasswd=$arr[1];
-                    if(($inpasswd!==$passwd && md5(md5($arr[1]).'+'.sha1($arr[1]))!==MANAGE_PASSWORD) || !samefd($arr[2],$opath))
+                    if(($inpasswd!==$passwd && $inpasswd!==MANAGE_PASSWORD) || !samefd($arr[2],$opath))
                     {
                         $inpassver=true;
                         echo '<p class="lead text-center">Verification <span style="color: red;"><strong>failed</strong></span>.</p>';
@@ -219,7 +243,7 @@
         if($inpassver)
         {
 ?>
-<form action="<?php echo encodedir(ROOT_DIR.$opath); ?>?pass=" method="post">
+<form action="<?php echo (OLDSTYLE_PATH?'':'view?p=').encodedir(ROOT_DIR.$opath); ?>" method="post">
     <div class="table-responsive">
         <table class="table">
             <thead>
@@ -343,7 +367,7 @@ EOF;
             $passver=false;
         else
             $passver=true;
-        return ($passver==false ? FALSE : $passwd);
+        return ($passver==false ? FALSE : gethashedpass($passwd));
     }
     
     /* Read the password/... in all sub-directory */
@@ -385,9 +409,15 @@ EOF;
             $tpath=dirname($tpath);
             $pathfirst=false;
         }
-        return ($passver==false ? FALSE : $passwd);
+        return ($passver==false ? FALSE : gethashedpass($passwd));
     }
 
+    /* Return the hashed password */
+    function gethashedpass($pass)
+    {
+        return md5(md5($pass).'+'.sha1($pass));
+    }
+    
     /* Encrypt the string */
     function encrypt($string,$operation,$key='')
     {
@@ -464,7 +494,7 @@ EOF;
         if(!$o_header)
             htmlmsg();
         echo '<h1 class="text-center" style="margin:46px;">'.$msg.'</h1>';
-        echo '<p class="lead text-right" style="padding:25px;margin:0px;">Need support? Please contant the server administrator at rmnihyc@gmail.com ......</p>';
+        echo '<p class="lead text-right" style="padding:25px;margin:0px;">Need support? Please contact the server administrator at '.ADMIN_EMAIL.' ......</p>';
         htmlmsg(false);
         if($db)
             $db->close();
