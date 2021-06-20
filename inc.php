@@ -2,14 +2,16 @@
     /* The default value is recommended except tokens and passwords. */
     /* NOTICE: '/assets/', '/view', '/down', '/manage' are reserved and
     can NOT be used as file/dirname (or otherwise they will be inaccessible). */
-    /* NOTICE: file/dirname can't contain the character '|'. */
+    /* NOTICE: file/dirname can NOT contain the character '|'. */
     
     /* Set local envirenment to Chinese */
     setlocale(LC_ALL,'zh_CN.UTF8');
 
+    /* NOTICE: Do NOT use '/' as the last character */
     /* Directory of two .php files(/ as webroot) */
     define('ROOT_DIR','');
     
+    /* NOTICE: Do NOT use '/' as the last character */
     /* Directory of the main folder(/ as webroot) */
     define('FILE_DIR','/dl');
     

@@ -1,7 +1,7 @@
 <?php
     define('IS_IN_PHP',true);
-    ini_set('session.cookie_lifetime','3600');
-    ini_set('session.gc_maxlifetime','3600');
+    ini_set('session.cookie_lifetime',3600*24);
+    ini_set('session.gc_maxlifetime',3600*24);
     //error_reporting(E_ERROR);
     session_start();
     $db=NULL;
@@ -9,7 +9,6 @@
     
     /* Get the path as well as password(if exists) */
     $opath=urldecode($_SERVER['REQUEST_URI']);
-    $opath=str_replace(ROOT_DIR,'',$opath,$cnt);
     $inpassver=false;$inpasswd='';
     if(strpos($opath,'?')!==FALSE)
     {
@@ -111,6 +110,12 @@
             else diemsg('Invalid parameter(s)');
     }
     
+    if(!empty(ROOT_DIR))
+    {
+        if(substr($opath,0,strlen(ROOT_DIR))!==ROOT_DIR)
+            diemsg('Incorrect ROOT_DIR is set');
+        $opath=substr($opath,strlen(ROOT_DIR));
+    }
     filterpath($opath);
     $path=dirname(__FILE__).FILE_DIR.$opath;
     filterpath($path);
@@ -121,8 +126,6 @@
     if(invalidfilename($path))
         diemsg('Access denied.');
     
-    if(!empty(ROOT_DIR) && $cnt==0)
-        diemsg();
     opendb();
     
     /* Enter the management page */
@@ -485,7 +488,7 @@
             {
                 /* Construct the html code */
                 /* There's nothing wrong so I don't need to optimize it */
-                $outhtml.='<tr><td><p class="text-center">'.'..'.'</p></td><td style="text-align:right;width:150px;">'.htmlentities('<DIR>').'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.(OLDSTYLE_PATH?encodedir(dirname($opath)):'view').($passdown ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.dirname($opath),'E',DEF_PASS)) : '?p='.encodedir(dirname($opath))).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
+                $outhtml.='<tr><td><p class="text-center">'.'..'.'</p></td><td style="text-align:right;width:150px;">'.htmlentities('<DIR>').'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.(OLDSTYLE_PATH?encodedir(ROOT_DIR.dirname($opath)):'view').($passdown ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.dirname($opath),'E',DEF_PASS)) : '?p='.encodedir(dirname($opath))).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
             }
             $file=scandir($path);
             foreach($file as $val)
@@ -500,7 +503,7 @@
                 
                 /* Construct the html code */
                 /* There's nothing wrong so I don't need to optimize it */
-                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.(OLDSTYLE_PATH?encodedir($fopath):'view').($passdown ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '?p='.encodedir($fopath)).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
+                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.(OLDSTYLE_PATH?encodedir(ROOT_DIR.$fopath):'view').($passdown ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '?p='.encodedir($fopath)).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
             }
             $endhtml='<p class="lead text-center">Number of items: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; '.strval($elecnt).'</p>'.$exs.$endhtml;
             $outhtml.='</tbody></table></div>';

@@ -9,7 +9,7 @@
 * 或者可以取消这个文件/目录的访问密码 ```nofile/dirpass = yes```  
 * 或者可以取消当前文件/目录的访问密码 ```nocurfile/dirpass = yes```  
 * 或者可以设置子目录中的文件/目录的访问密码 ```subfile/dirpass = ...```  
-* 或者可以取消子目录中的文件/目录的访问密码 ```nofile/dirpass = yes```  
+* 或者可以取消子目录中的文件/目录的访问密码 ```subnofile/dirpass = yes```  
 
 密码的查找顺序为：```文件 > 当前目录 > 父目录``` 
 密码的匹配顺序（当前）为：```nocur()pass > cur()pass > no()pass > ()pass```  
