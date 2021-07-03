@@ -8,7 +8,7 @@
     setlocale(LC_ALL,'zh_CN.UTF8');
 
     /* NOTICE: Do NOT use '/' as the last character */
-    /* Directory of two .php files(/ as webroot) */
+    /* Directory of these .php files(/ as webroot) */
     define('ROOT_DIR','');
     
     /* NOTICE: Do NOT use '/' as the last character */
@@ -36,6 +36,10 @@
     /* New: /[method]?[para] which reduces URI length greatly */
     define('OLDSTYLE_PATH',false);
     
+    /* Whether include visible file/dir path in URI */
+    /* Available when OLDSTYLE_PATH is set to false */
+    define('INCLUDE_VISPATH',true);
+    
     /* Whether support new ways of processing parameters */
     /* Available when OLDSTYLE_PATH is set to true */
     define('SUPPORT_NEWPATH',true);
@@ -52,17 +56,24 @@
     /* Default value 7f6d747029adeefe073804e34b089020 means blank password */
     define('MANAGE_PASSWORD','7f6d747029adeefe073804e34b089020');
     
-    /* Abandoned */
-    //define('DIRPASS_NAME','/.pass');
+    /* Define the order of download methods */
+    $down_order=array(2,1,3);
+    
+    /* Supported download methods */
+    /* NOTICE: Please do NOT change it to cause confusion */
+    $down_str=array(1=>'this site',2=>'OneDrive',3=>'Google Drive');
 
+    // ^---------------------------------------
+    
     $db=NULL;
     $o_header=false;
 
     /* Check if the two files/directories are the same */
     function samefd($p1,$p2)
     {
+        $p1.='/';$p2.='/';
         filterpath($p1);filterpath($p2);
-        return (dirname($p1.'/1.b')===dirname($p2.'/2.c'));
+        return ($p1===$p2);
     }
 
     /* Execute necessary scripts or show html pages */
@@ -120,7 +131,7 @@
     {
 ?>
 <div class="table-responsive">
-        <table class="table">
+        <table class="table table-striped table-sm">
             <thead>
                 <tr>
                     <th class="d-table-cell">
@@ -160,7 +171,7 @@
 ?>
 <form action="#" method="post">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table table-borderless">
             <thead>
                 <tr>
                     <th style="width:432px;"><input class="form-control d-table ml-auto text-center" type="password" name="manage" autofocus="" autocomplete="off" style="width:441px;"></th>
@@ -190,7 +201,7 @@
     {
 ?>
 <div class="table-responsive">
-        <table class="table">
+        <table class="table table-striped table-sm">
             <thead>
                 <tr>
                     <th class="d-table-cell">
@@ -205,7 +216,7 @@
                 $inpasswd=gethashedpass($_POST['pass']);
                 ob_end_clean();
                 /* Generate view/down link by $isdd (direct link) */
-                header('Location: '.(OLDSTYLE_PATH?encodedir(ROOT_DIR.$opath):'view').'?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$opath,'E',DEF_PASS)),TRUE,301);
+                header('Location: '.getviewlink($opath,true,$inpasswd),TRUE,301);
                 die();
             }
             $inpasswd=encrypt($inpasswd,'D',DEF_PASS);
@@ -247,7 +258,7 @@
 ?>
 <form action="<?php echo (OLDSTYLE_PATH?'':'view?p=').encodedir(ROOT_DIR.$opath); ?>" method="post">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table table-borderless">
             <thead>
                 <tr>
                     <th style="width:432px;"><input class="form-control d-table ml-auto text-center" type="password" name="pass" autofocus="" autocomplete="off" style="width:441px;"></th>
@@ -277,8 +288,8 @@
         if(basename($name)==='.htaccess')
             return true;
         /* Self-protection */
-        if(samefd($name,dirname(__FILE__).'/inc.php') || samefd($name,dirname(__FILE__).'/view.php')
-            || samefd($name,dirname(__FILE__).CONFIG_FILE))
+        if(samefd($name,__DIR__.'/inc.php') || samefd($name,__DIR__.'/view.php')
+            || samefd($name,__DIR__.'/api.php') || samefd($name,__DIR__.CONFIG_FILE))
             return true;
         return false;
     }
@@ -287,7 +298,7 @@
     {
         function __construct()
         {
-            $dbfile=dirname(__FILE__).CONFIG_FILE;
+            $dbfile=__DIR__.CONFIG_FILE;
             $this->open($dbfile);
         }
         public function execwf($sql)
@@ -310,7 +321,7 @@
     
     function opendb()
     {
-        $dbfile=dirname(__FILE__).CONFIG_FILE;
+        $dbfile=__DIR__.CONFIG_FILE;
         if(!file_exists($dbfile))
             $init=true;
         global $db;
@@ -412,6 +423,16 @@ EOF;
             $pathfirst=false;
         }
         return ($passver==false ? FALSE : gethashedpass($passwd));
+    }
+
+    function getdownlink($path,$passver,$inpasswd,$type)
+    {
+        return (OLDSTYLE_PATH?encodedir(ROOT_DIR.$path):'down').'?'.(INCLUDE_VISPATH?'p='.encodedir($path).'&':'').urlencode(encrypt($type.'|'.($passver ? $inpasswd : '').'|'.strval(time()).'|'.$path,'E',DEF_DOWN));
+    }
+    
+    function getviewlink($path,$passver,$inpasswd)
+    {
+        return (OLDSTYLE_PATH?encodedir(ROOT_DIR.$path):'view').($passver ? '?'.(INCLUDE_VISPATH?'p='.encodedir($path).'&':'').urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$path,'E',DEF_PASS)) : '?p='.encodedir($path));
     }
 
     /* Return the hashed password */
@@ -532,6 +553,15 @@ EOF;
                 $("#itsql").focus();
             }
         </script>
+        <style>
+            .table-borderless thead tr th, .table-borderless tbody tr td {
+                border: none;
+            }
+            .text-larger {
+                font-size: 18px;
+                line-height: 1;
+            }
+        </style>
     
         <?php }
         else

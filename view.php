@@ -5,15 +5,15 @@
     //error_reporting(E_ERROR);
     session_start();
     $db=NULL;
-    include 'inc.php';
+    include_once 'inc.php';
+    include_once 'api.php';
     
     /* Get the path as well as password(if exists) */
     $opath=urldecode($_SERVER['REQUEST_URI']);
     $inpassver=false;$inpasswd='';
-    if(strpos($opath,'?')!==FALSE)
+    if(($vpos=strpos($opath,'?'))!==FALSE)
     {
         $inpassver=true;
-        $vpos=strpos($opath,'?');
         $inpasswd=substr($opath,$vpos+1);
         $oinpasswd=$inpasswd;
         $opath=substr($opath,0,$vpos);
@@ -24,70 +24,76 @@
     {
         $ismanage=($opath=='/manage');
         if($opath=='/view' || $opath=='/down' || $opath=='/manage')
+        {
+            $ropath='';
             if(substr($inpasswd,0,2)=='p=')
             {
-                $ddrequest=($opath=='/down');
-                $opath=substr($inpasswd,2);
+                $ropath=substr($inpasswd,2);
                 if($ismanage)
                     $inpasswd='manage';
                 else
                     $inpassver=isset($_POST['pass']);
+                if(($vpos=strpos($ropath,'&'))!==FALSE)
+                {
+                    $inpasswd=substr($ropath,$vpos+1);
+                    $inpassver|=!empty($inpasswd);
+                    $ropath=substr($ropath,0,$vpos);
+                }
             }
-            else
+            $vtmp=encrypt($inpasswd,'D',DEF_PASS);
+            $dtmp=encrypt($inpasswd,'D',DEF_DOWN);
+            if($opath=='/view')
+                if($vtmp!==false && strpos($vtmp,'|')!==false)
+                {
+                    $arr=explode('|',$vtmp);
+                    $opath=$arr[2];
+                }
+                /* Convert from down to view */
+                else if($dtmp!==false && strpos($dtmp,'|')!==false)
+                {
+                    $arr=explode('|',$dtmp);
+                    $opath=$arr[3];
+                    $inpasswd=encrypt($arr[2].'|'.$arr[1].'|'.$opath,'E',DEF_PASS);
+                }
+                else if(empty($ropath)) diemsg('Invalid parameter(s)');
+                else ;
+            else if($opath=='/down')
+                if($dtmp!==false && strpos($dtmp,'|')!==false)
+                {
+                    $arr=explode('|',$dtmp);
+                    $opath=$arr[3];
+                }
+                /* Convert from view to down */
+                else if($vtmp!==false && strpos($vtmp,'|')!==false)
+                {
+                    $arr=explode('|',$vtmp);
+                    $opath=$arr[2];
+                    //$inpasswd=encrypt('dn'.'|'.$arr[1].'|'.$arr[0].'|'.$opath,'E',DEF_DOWN);
+                    /* Unable to 'down' a directory, keeping 'view' */
+                    /* Will enter 'down' process only when is_file() */
+                    $ddrequest=true;
+                }
+                else if(empty($ropath)) diemsg('Invalid parameter(s)');
+                else $ddrequest=true;
+            else if($opath=='/manage')
             {
-                $vtmp=encrypt($inpasswd,'D',DEF_PASS);
-                $dtmp=encrypt($inpasswd,'D',DEF_DOWN);
-                if($opath=='/view')
+                if($vtmp!==false && strpos($vtmp,'|')!==false)
                 {
-                    if($vtmp!==false && strpos($vtmp,'|')!==false)
-                    {
-                        $arr=explode('|',$vtmp);
-                        $opath=$arr[2];
-                    }
-                    /* Convert from down to view */
-                    else if($dtmp!==false && strpos($dtmp,'|')!==false)
-                    {
-                        $arr=explode('|',$dtmp);
-                        $opath=$arr[3];
-                        $inpasswd=encrypt($arr[2].'|'.$arr[1].'|'.$opath,'E',DEF_PASS);
-                    }
-                    else diemsg('Invalid parameter(s)');
+                    $arr=explode('|',$vtmp);
+                    $opath=$arr[2];
                 }
-                else if($opath=='/down')
+                else if($dtmp!==false && strpos($dtmp,'|')!==false)
                 {
-                    if($dtmp!==false && strpos($dtmp,'|')!==false)
-                    {
-                        $arr=explode('|',$dtmp);
-                        $opath=$arr[3];
-                    }
-                    /* Convert from view to down */
-                    else if($vtmp!==false && strpos($vtmp,'|')!==false)
-                    {
-                        $arr=explode('|',$vtmp);
-                        $opath=$arr[2];
-                        //$inpasswd=encrypt('dn'.'|'.$arr[1].'|'.$arr[0].'|'.$opath,'E',DEF_DOWN);
-                        /* Unable to 'down' a directory, keeping 'view' */
-                        /* Will enter 'down' process only when is_file() */
-                        $ddrequest=true;
-                    }
-                    else diemsg('Invalid parameter(s)');
+                    $arr=explode('|',$dtmp);
+                    $opath=$arr[3];
                 }
-                else
-                {
-                    if($vtmp!==false && strpos($vtmp,'|')!==false)
-                    {
-                        $arr=explode('|',$vtmp);
-                        $opath=$arr[2];
-                    }
-                    else if($dtmp!==false && strpos($dtmp,'|')!==false)
-                    {
-                        $arr=explode('|',$dtmp);
-                        $opath=$arr[3];
-                    }
-                    else diemsg('Invalid parameter(s)');
-                    $inpasswd='manage';
-                }
+                else if(empty($ropath)) diemsg('Invalid parameter(s)');
+                $inpasswd='manage';
             }
+            /* NOTICE: Overwrite */
+            if(!empty($ropath))
+                $opath=$ropath;
+        }
         /* This is a legacy path, so redirect */
         else if(!OLDSTYLE_PATH)
             if(empty($inpasswd))
@@ -97,12 +103,12 @@
             }
             else if(($vtmp=encrypt($inpasswd,'D',DEF_PASS))!==FALSE)
             {
-                header('Location: /view?'.urlencode($inpasswd),TRUE,301);
+                header('Location: /view?'.(INCLUDE_VISPATH?'p='.encodedir($opath).'&':'').urlencode($inpasswd),TRUE,301);
                 die;
             }
             else if(($vtmp=encrypt($inpasswd,'D',DEF_DOWN))!==FALSE)
             {
-                header('Location: /down?'.urlencode($inpasswd),TRUE,301);
+                header('Location: /down?'.(INCLUDE_VISPATH?'p='.encodedir($opath).'&':'').urlencode($inpasswd),TRUE,301);
                 die;
             }
             else if($inpasswd==='manage')
@@ -110,6 +116,8 @@
             else diemsg('Invalid parameter(s)');
     }
     
+    if(substr($opath,0,1)!=='/')
+        $opath='/'.$opath;
     if(!empty(ROOT_DIR))
     {
         if(substr($opath,0,strlen(ROOT_DIR))!==ROOT_DIR)
@@ -117,7 +125,7 @@
         $opath=substr($opath,strlen(ROOT_DIR));
     }
     filterpath($opath);
-    $path=dirname(__FILE__).FILE_DIR.$opath;
+    $path=__DIR__.FILE_DIR.$opath;
     filterpath($path);
     if(strpos($path,'../')!==FALSE || strpos($path,'/..')!==FALSE)
         diemsg('Access denied.');
@@ -157,7 +165,7 @@
                     '\' WHERE NAME=\''.$db->escapeString($_POST['nameu']).'\' AND TYPE=\''.$db->escapeString($_POST['typeu']).'\'');
             }
             
-            if(is_dir(dirname(__FILE__).FILE_DIR.$opath) && substr($opath,-1,1)!=='/')
+            if(is_dir(__DIR__.FILE_DIR.$opath) && substr($opath,-1,1)!=='/')
                 $opath.='/';
             $qsql='SELECT NAME,TYPE,VALUE FROM CONFIG WHERE NAME LIKE \''.$db->escapeString($opath).'%\'';
             if(isset($_POST['sql']) && !empty($_POST['sql']))
@@ -285,9 +293,9 @@
         
         /* No password verification and a direct link is requested */
         $isdd=($inpasswd==='direct' || $ddrequest);
-        if(!$passver && $isdd)
+        if(!$passver && $isdd && !$aldd)
         {
-            header('Location: '.(OLDSTYLE_PATH?encodedir(ROOT_DIR.$opath):'down').'?'.urlencode(encrypt('on'.'|'.''.'|'.strval(time()).'|'.$opath,'E',DEF_DOWN)),TRUE,301);
+            header('Location: '.getdownlink($opath,false,'','on'),TRUE,301);
             die();
         }
         
@@ -398,26 +406,43 @@
         /* Have passed the verification, so show the downloading link */
         if(!$passver || ($passver && !$inpassver))
         {
-?>
-<div class="table-responsive">
- <table class="table">
-  <thead>
-   <tr>
-    <th style="width:485px;">
-     <div class="d-table ml-auto"><a class="btn btn-dark" role="button" href="<?php echo (OLDSTYLE_PATH?encodedir(ROOT_DIR.$opath):'down').'?'.urlencode(encrypt('on'.'|'.($passver ? $inpasswd : '').'|'.strval(time()).'|'.$opath,'E',DEF_DOWN)); ?>" target="">Open</a></div>
-    </th>
-    <th style="width:28px;"><strong>or</strong></th>
-    <th style="width:502px;">
-     <div class="d-table mr-auto"><a class="btn btn-dark" role="button" href="<?php echo (OLDSTYLE_PATH?encodedir(ROOT_DIR.$opath):'down').'?'.urlencode(encrypt('dn'.'|'.($passver ? $inpasswd : '').'|'.strval(time()).'|'.$opath,'E',DEF_DOWN)); ?>" target="">Download</a></div>
-    </th>
-   </tr>
-  </thead>
-  <tbody>
-   <tr></tr>
-  </tbody>
- </table>
+            $dstr=<<<EOF
+<div class="table-responsive-sm">
+ <table class="table table-striped table-sm"><thead><tr><th>
+   <table class="table table-borderless"><thead>
+    <tr>
+     <th colspan="3">
+       <p class="text-center text-larger">Provided by %s</p>
+     </th>
+    </tr>
+    <tr>
+     <th style="width:485px;">
+      <div class="d-table ml-auto"><a class="btn btn-dark" role="button" href="%s" target="">Open</a></div>
+     </th>
+     <th style="width:28px;"><strong>or</strong></th>
+     <th style="width:502px;">
+      <div class="d-table mr-auto"><a class="btn btn-dark" role="button" href="%s" target="">Download</a></div>
+     </th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr></tr>
+   </tbody>
+  </table>
+  </tr></th></thead><tbody><tr></tr></tbody></table>
 </div>
-<?php
+EOF;
+            foreach($down_order as $val)
+                if($val===1)
+                    printf($dstr,$down_str[$val],getdownlink($opath,$passver,$inpasswd,'on'),getdownlink($opath,$passver,$inpasswd,'dn'));
+                else if($val===2)
+                {
+                    
+                }
+                else if($val===3)
+                {
+                    
+                }
         }
         
         htmlmsg(false);
@@ -444,7 +469,7 @@
         ob_start();
         htmlmsg();
         $dna=explode('/',$opath);
-        echo '<h1 class="text-center">Directory of \''.htmlentities($dna[count($dna)-2].'/').'\' ......</h1>';
+        echo '<h1 class="text-center">Directory of \''.htmlentities($dna[count($dna)-2]).'\' ......</h1>';
         
         $pswdtxt='';
         ob_start( function($str){$GLOBALS['pswdtxt'].=$str; return '';} );
@@ -488,7 +513,7 @@
             {
                 /* Construct the html code */
                 /* There's nothing wrong so I don't need to optimize it */
-                $outhtml.='<tr><td><p class="text-center">'.'..'.'</p></td><td style="text-align:right;width:150px;">'.htmlentities('<DIR>').'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.(OLDSTYLE_PATH?encodedir(ROOT_DIR.dirname($opath)):'view').($passdown ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.dirname($opath),'E',DEF_PASS)) : '?p='.encodedir(dirname($opath))).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
+                $outhtml.='<tr><td><p class="text-center">'.'..'.'</p></td><td style="text-align:right;width:150px;">'.htmlentities('<DIR>').'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.getviewlink(dirname($opath),$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
             }
             $file=scandir($path);
             foreach($file as $val)
@@ -498,12 +523,12 @@
                     continue;
                 $elecnt++;
                 $fopath=$opath.$val;
-                $fpath=dirname(__FILE__).FILE_DIR.$fopath;
+                $fpath=__DIR__.FILE_DIR.$fopath;
                 $ispd=is_dir($fpath);
                 
                 /* Construct the html code */
                 /* There's nothing wrong so I don't need to optimize it */
-                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.(OLDSTYLE_PATH?encodedir(ROOT_DIR.$fopath):'view').($passdown ? '?'.urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$fopath,'E',DEF_PASS)) : '?p='.encodedir($fopath)).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
+                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.getviewlink($fopath,$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
             }
             $endhtml='<p class="lead text-center">Number of items: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; '.strval($elecnt).'</p>'.$exs.$endhtml;
             $outhtml.='</tbody></table></div>';
