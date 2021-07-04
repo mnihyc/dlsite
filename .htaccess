@@ -2,5 +2,5 @@
 RewriteEngine On
 RewriteBase /
 
-RewriteCond %{REQUEST_URI} !^(/view\.php|/assets/|/favicon.ico$|/robots.txt$)
-RewriteRule .  /view.php [L]
+RewriteCond %{REQUEST_URI} !^(/main\.php|/assets/|/favicon.ico$|/robots.txt$)
+RewriteRule .  /main.php [L]

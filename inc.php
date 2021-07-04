@@ -8,7 +8,8 @@
     setlocale(LC_ALL,'zh_CN.UTF8');
 
     /* NOTICE: Do NOT use '/' as the last character */
-    /* Directory of these .php files(/ as webroot) */
+    /* Directory of these php files(/ as webroot) */
+    /* Leaving this as default value is highly recommended */
     define('ROOT_DIR','');
     
     /* NOTICE: Do NOT use '/' as the last character */
@@ -16,10 +17,10 @@
     define('FILE_DIR','/dl');
     
     /* NOTICE: The following two tokens must be DIFFERENT. */
-    /* The token of password verification */
+    /* The token of password verification (keep it SECRET) */
     define('DEF_PASS','123456');
     
-    /* The token of downloading files */
+    /* The token of downloading files (keep it SECRET) */
     define('DEF_DOWN','789101112');
     
     /* Buffer size of downloading */
@@ -51,7 +52,7 @@
     /* Displayed when an error occurs */
     define('ADMIN_EMAIL','YOUR_EMAIL');
     
-    /* Encrypted password of the management page */
+    /* Encrypted password of the management page (keep it SECRET) */
     /* The way to compute: md5(md5(PSWD).'+'.sha1(PSWD)) */
     /* Default value 7f6d747029adeefe073804e34b089020 means blank password */
     define('MANAGE_PASSWORD','7f6d747029adeefe073804e34b089020');
@@ -122,7 +123,7 @@
         $arr=explode('/',$path);
         unset($arr[0]);
         foreach($arr as $key => $val)
-            $str.=('/'.urlencode($val));
+            $str.=('/'.rawurlencode($val));
         return $str;
     }
     
@@ -288,7 +289,7 @@
         if(basename($name)==='.htaccess')
             return true;
         /* Self-protection */
-        if(samefd($name,__DIR__.'/inc.php') || samefd($name,__DIR__.'/view.php')
+        if(samefd($name,__DIR__.'/inc.php') || samefd($name,__DIR__.'/main.php')
             || samefd($name,__DIR__.'/api.php') || samefd($name,__DIR__.CONFIG_FILE))
             return true;
         return false;
@@ -342,11 +343,54 @@ EOF;
         }
     }
     
+    /* Get a refresh token of api.php */
+    function getrefreshtoken($name,$type)
+    {
+        global $db;
+        $arr=$db->queryarr("SELECT VALUE FROM CONFIG WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_refresh_token'");
+        if(empty($arr))
+        {
+            $db->execwf("INSERT INTO CONFIG (NAME,TYPE,VALUE) VALUES ('{$db->escapeString($name)}','{$db->escapeString($type)}_refresh_token','')");
+            return '';
+        }
+        return $arr[0]['VALUE'];
+    }
+    
+    /* Update a refresh token of api.php */
+    function updaterefreshtoken($name,$type,$token)
+    {
+        global $db;
+        $db->execwf("UPDATE CONFIG SET VALUE='{$db->escapeString($token)}' WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_refresh_token'");
+    }
+    
+    /* Get an access token of api.php */
+    function getaccesstoken($name,$type)
+    {
+        global $db;
+        $arr=$db->queryarr("SELECT VALUE FROM CONFIG WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_access_token'");
+        if(empty($arr))
+            $db->execwf("INSERT INTO CONFIG (NAME,TYPE,VALUE) VALUES ('{$db->escapeString($name)}','{$db->escapeString($type)}_access_token','')");
+        $arr1=$db->queryarr("SELECT VALUE FROM CONFIG WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_expiry_time'");
+        if(empty($arr1))
+            $db->execwf("INSERT INTO CONFIG (NAME,TYPE,VALUE) VALUES ('{$db->escapeString($name)}','{$db->escapeString($type)}_expiry_time','0')");
+        if(empty($arr) || empty($arr1) || intval($arr1[0]['VALUE'])-10 < time())
+            return false;
+        return $arr[0]['VALUE'];
+    }
+    
+    /* Update an access token of api.php */
+    function updateaccesstoken($name,$type,$time,$token)
+    {
+        global $db;
+        $db->execwf("UPDATE CONFIG SET VALUE='{$db->escapeString($token)}' WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_access_token'");
+        $db->execwf("UPDATE CONFIG SET VALUE='{$db->escapeString(strval($time))}' WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_expiry_time'");
+    }
+    
     /* Get an array of TYPEs<->VALUEs in specific NAME */
     function getdbtypes($name)
     {
         global $db;
-        $arr=$db->queryarr('SELECT TYPE,VALUE FROM CONFIG WHERE NAME=\''.$db->escapeString($name).'\'');
+        $arr=$db->queryarr("SELECT TYPE,VALUE FROM CONFIG WHERE NAME='{$db->escapeString($name)}'");
         $ret=array();
         foreach($arr as $key => $val)
             $ret[$val['TYPE']]=$val['VALUE'];
@@ -374,13 +418,16 @@ EOF;
             if(strtolower($passwdarr['nocur'.$type])==='yes')
                 $passver=$checkm=false;
         }
+        /* Be careful of cross reference */
+        if(isset($passwd) && !empty($passwd) && $passver)
+            $passwd=gethashedpass($passwd);
         if(!$passver && $checkm)
             $passwd=getdirpass(dirname($opath),$type,true);
         if(!isset($passwd) || $passwd===FALSE)
             $passver=false;
         else
             $passver=true;
-        return ($passver==false ? FALSE : gethashedpass($passwd));
+        return ($passver==false ? FALSE : $passwd);
     }
     
     /* Read the password/... in all sub-directory */
@@ -427,12 +474,12 @@ EOF;
 
     function getdownlink($path,$passver,$inpasswd,$type)
     {
-        return (OLDSTYLE_PATH?encodedir(ROOT_DIR.$path):'down').'?'.(INCLUDE_VISPATH?'p='.encodedir($path).'&':'').urlencode(encrypt($type.'|'.($passver ? $inpasswd : '').'|'.strval(time()).'|'.$path,'E',DEF_DOWN));
+        return (OLDSTYLE_PATH?encodedir(ROOT_DIR.$path):'down').'?'.(INCLUDE_VISPATH?'p='.encodedir($path).'&':'').rawurlencode(encrypt($type.'|'.($passver ? $inpasswd : '').'|'.strval(time()).'|'.$path,'E',DEF_DOWN));
     }
     
     function getviewlink($path,$passver,$inpasswd)
     {
-        return (OLDSTYLE_PATH?encodedir(ROOT_DIR.$path):'view').($passver ? '?'.(INCLUDE_VISPATH?'p='.encodedir($path).'&':'').urlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$path,'E',DEF_PASS)) : '?p='.encodedir($path));
+        return (OLDSTYLE_PATH?encodedir(ROOT_DIR.$path):'view').($passver ? '?'.(INCLUDE_VISPATH?'p='.encodedir($path).'&':'').rawurlencode(encrypt(strval(time()).'|'.$inpasswd.'|'.$path,'E',DEF_PASS)) : '?p='.encodedir($path));
     }
 
     /* Return the hashed password */

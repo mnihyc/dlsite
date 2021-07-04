@@ -18,6 +18,13 @@
         $oinpasswd=$inpasswd;
         $opath=substr($opath,0,$vpos);
     }
+    if(!empty(ROOT_DIR))
+    {
+        if(substr($opath,0,strlen(ROOT_DIR))!==ROOT_DIR)
+            diemsg('Incorrect ROOT_DIR is set');
+        $opath=substr($opath,strlen(ROOT_DIR));
+    }
+    
     /* Adapt to new ways of processing parameters */
     $ddrequest=false;
     if(!OLDSTYLE_PATH || SUPPORT_NEWPATH)
@@ -103,12 +110,12 @@
             }
             else if(($vtmp=encrypt($inpasswd,'D',DEF_PASS))!==FALSE)
             {
-                header('Location: /view?'.(INCLUDE_VISPATH?'p='.encodedir($opath).'&':'').urlencode($inpasswd),TRUE,301);
+                header('Location: /view?'.(INCLUDE_VISPATH?'p='.encodedir($opath).'&':'').rawurlencode($inpasswd),TRUE,301);
                 die;
             }
             else if(($vtmp=encrypt($inpasswd,'D',DEF_DOWN))!==FALSE)
             {
-                header('Location: /down?'.(INCLUDE_VISPATH?'p='.encodedir($opath).'&':'').urlencode($inpasswd),TRUE,301);
+                header('Location: /down?'.(INCLUDE_VISPATH?'p='.encodedir($opath).'&':'').rawurlencode($inpasswd),TRUE,301);
                 die;
             }
             else if($inpasswd==='manage')
@@ -118,12 +125,6 @@
     
     if(substr($opath,0,1)!=='/')
         $opath='/'.$opath;
-    if(!empty(ROOT_DIR))
-    {
-        if(substr($opath,0,strlen(ROOT_DIR))!==ROOT_DIR)
-            diemsg('Incorrect ROOT_DIR is set');
-        $opath=substr($opath,strlen(ROOT_DIR));
-    }
     filterpath($opath);
     $path=__DIR__.FILE_DIR.$opath;
     filterpath($path);
@@ -147,27 +148,24 @@
             if(isset($_POST['qi']))
             {
                 global $db;
-                $db->execwf('INSERT INTO CONFIG (NAME,TYPE,VALUE) VALUES (\''.$db->escapeString($_POST['namei']).
-                    '\',\''.$db->escapeString($_POST['typei']).'\',\''.$db->escapeString($_POST['valuei']).'\')');
+                $db->execwf("INSERT INTO CONFIG (NAME,TYPE,VALUE) VALUES ('{$db->escapeString($_POST['namei'])}','{$db->escapeString($_POST['typei'])}','{$db->escapeString($_POST['valuei'])}')");
             }
             /* Delete a record */
             if(isset($_POST['qd']))
             {
                 global $db;
-                $db->execwf('DELETE FROM CONFIG WHERE NAME=\''.$db->escapeString($_POST['named']).
-                    '\' AND TYPE=\''.$db->escapeString($_POST['typed']).'\'');
+                $db->execwf("DELETE FROM CONFIG WHERE NAME='{$db->escapeString($_POST['named'])}' AND TYPE='{$db->escapeString($_POST['typed'])}'");
             }
             /* Update a record */
             if(isset($_POST['qu']))
             {
                 global $db;
-                $db->execwf('UPDATE CONFIG SET VALUE=\''.$db->escapeString($_POST['valueu']).
-                    '\' WHERE NAME=\''.$db->escapeString($_POST['nameu']).'\' AND TYPE=\''.$db->escapeString($_POST['typeu']).'\'');
+                $db->execwf("UPDATE CONFIG SET VALUE='{$db->escapeString($_POST['valueu'])}' WHERE NAME='{$db->escapeString($_POST['nameu'])}' AND TYPE='{$db->escapeString($_POST['typeu'])}'");
             }
             
             if(is_dir(__DIR__.FILE_DIR.$opath) && substr($opath,-1,1)!=='/')
                 $opath.='/';
-            $qsql='SELECT NAME,TYPE,VALUE FROM CONFIG WHERE NAME LIKE \''.$db->escapeString($opath).'%\'';
+            $qsql="SELECT NAME,TYPE,VALUE FROM CONFIG WHERE NAME LIKE '{$db->escapeString($opath)}%'";
             if(isset($_POST['sql']) && !empty($_POST['sql']))
                 $qsql=$_POST['sql'];
             $qnamei=$opath;
@@ -435,9 +433,13 @@ EOF;
             foreach($down_order as $val)
                 if($val===1)
                     printf($dstr,$down_str[$val],getdownlink($opath,$passver,$inpasswd,'on'),getdownlink($opath,$passver,$inpasswd,'dn'));
-                else if($val===2)
+                else if($val===2 && \OneDrive\ENABLED)
                 {
-                    
+                    $odpath=FILE_DIR.$opath;
+                    $lk1=\OneDrive\getpreview($odpath);
+                    $lk2=\OneDrive\getlink($odpath);
+                    if($lk1!==FALSE && $lk2!==FALSE)
+                        printf($dstr,$down_str[$val],$lk1,$lk2);
                 }
                 else if($val===3)
                 {
