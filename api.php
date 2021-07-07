@@ -2,7 +2,6 @@
 
 namespace OneDrive
 {
-    /* Set to TRUE only when properly configured */
     define('OneDrive\ENABLED', FALSE);
     // Follow instructions on "https://docs.microsoft.com/en-us/onedrive/developer/rest-api/getting-started/graph-oauth?view=odsp-graph-online" (Code flow) to get the following token(s).
     // Required scopes: offline_access Files.Read Files.Read.All Files.ReadWrite Files.ReadWrite.All
@@ -14,7 +13,7 @@ namespace OneDrive
     /* refresh_token in database will be replaced by the following value if not empty */
     /* Set this only when an update of refresh_token is needed */
     define('OneDrive\REFRESH_TOKEN','');
-    /* Same as the one used when requesting $refres_token (no accessibility required) */
+    /* Same as the one used when requesting $refresh_token (no accessibility required) */
     define('OneDrive\REDIRECT_URI','');
 }
 namespace GoogleDrive
@@ -37,7 +36,7 @@ namespace
             curl_setopt($this->ch,CURLOPT_TIMEOUT,6);
             curl_setopt($this->ch,CURLOPT_RETURNTRANSFER,TRUE);
             curl_setopt($this->ch,CURLOPT_FOLLOWLOCATION,TRUE);
-            curl_setopt($this->ch,CURLOPT_USERAGENT,'dlsite by mnihyc');
+            curl_setopt($this->ch,CURLOPT_USERAGENT,'NONISV|mnihyc|dlsite/1.0');
         }
         public function __destruct()
     	{
@@ -83,12 +82,25 @@ namespace
     
     include_once 'inc.php';
     define('_TOKEN_PREFIX','_DO_NOT_MODIFY_');
+    $_onedrive_error_string='';
 }
 namespace OneDrive
 {
     define('OneDrive\PREURL',"https://graph.microsoft.com/v1.0");
+    function getlasterror()
+    {
+        global $_onedrive_error_string;
+        return $_onedrive_error_string;
+    }
+    function setlasterror($str)
+    {
+        global $_onedrive_error_string;
+        $_onedrive_error_string=$str;
+    }
     function getaccesstoken()
     {
+        if(!empty(getlasterror()))
+            return false;
         $ret=\getaccesstoken(\_TOKEN_PREFIX,'OneDrive');
         if($ret===false)
         {
@@ -106,6 +118,8 @@ namespace OneDrive
     }
     function updateaccesstoken($refresh_token)
     {
+        if(!empty(getlasterror()))
+            return false;
         $arr=array(
             'client_id' => CLIENT_ID,
             'redirect_uri' => REDIRECT_URI,
@@ -116,45 +130,87 @@ namespace OneDrive
         $req=new \Request;
         $res=$req->post('https://login.microsoftonline.com/common/oauth2/v2.0/token',$arr);
         if($req->httpcode!=200)
-            \diemsg("Unable to request access_token through OneDrive API (HTTP CODE:{$req->httpcode})");
+        {
+            setlasterror("API calls (access_token) failed with HTTP CODE {$req->httpcode}");
+            return false;
+        }
         $arr=json_decode($res,true);
         if(empty($arr) || $arr['token_type']!=='Bearer')
-            \diemsg("Unable to request access_token through OneDrive API (unexpected)");
+        {
+            setlasterror("API calls (access_token) failed unexpectedly");
+            return false;
+        }
         return $arr;
     }
     function getid($path)
     {
+        if(!empty(getlasterror()))
+            return false;
         $access_token=getaccesstoken();
         $req=new \Request;
         $req->setauth($access_token);
         $path=\encodedir($path);
         $res=$req->get(PREURL."/me/drive/root:{$path}");
         if($req->httpcode==404)
+        {
+            setlasterror("404 File not found");
             return false;
+        }
+        if($req->httpcode==429)
+        {
+            setlasterror("API calls (Get item) being rate limited, please try again later");
+            return false;
+        }
         if($req->httpcode!=200 && $req->httpcode!=401)
-            \diemsg("Unable to request files through OneDrive API (HTTP CODE:{$req->httpcode})");
+        {
+            setlasterror("API calls (Get item) failed with HTTP CODE {$req->httpcode}");
+            return false;
+        }
         $arr=json_decode($res,true);
         if(empty($arr) || empty($arr['id']))
-            \diemsg("Unable to request files through OneDrive API (unexpected)");
+        {
+            {
+            setlasterror("API calls (Get item) failed unexpectedly");
+            return false;
+        }
+        }
         return $arr['id'];
     }
     function getlink($path)
     {
+        if(!empty(getlasterror()))
+            return false;
         $access_token=getaccesstoken();
         $req=new \Request;
         $req->setauth($access_token);
         $path=\encodedir($path);
         $loc=$req->getloc(PREURL."/me/drive/root:{$path}:/content");
         if($req->httpcode==404)
+        {
+            setlasterror("404 File not found");
             return false;
+        }
+        if($req->httpcode==429)
+        {
+            setlasterror("API calls (Download) being rate limited, please try again later");
+            return false;
+        }
         if($req->httpcode!=200 && $req->httpcode!=302)
-            \diemsg("Unable to request files through OneDrive API (HTTP CODE:{$req->httpcode})");
+        {
+            setlasterror("API calls (Download) failed with HTTP CODE {$req->httpcode}");
+            return false;
+        }
         if(empty($loc))
-            \diemsg("Unable to request files through OneDrive API (unexpected)");
+        {
+            setlasterror("API calls (Download) failed unexpectedly");
+            return false;
+        }
         return $loc;
     }
     function getpreview($path)
     {
+        if(!empty(getlasterror()))
+            return false;
         $id=getid($path);
         if($id===false)
             return false;
@@ -162,11 +218,22 @@ namespace OneDrive
         $req=new \Request;
         $req->setauth($access_token);
         $res=$req->post(PREURL."/me/drive/items/{$id}/preview",array());
+        if($req->httpcode==429)
+        {
+            setlasterror("API calls (Preview) being rate limited, please try again later");
+            return false;
+        }
         if($req->httpcode!=200 && $req->httpcode!=401)
-            \diemsg("Unable to request files through OneDrive API (HTTP CODE:{$req->httpcode})");
+        {
+            setlasterror("API calls (Preview) failed with HTTP CODE {$req->httpcode}");
+            return false;
+        }
         $arr=json_decode($res,true);
         if(empty($arr) || empty($arr['getUrl']))
-            \diemsg("Unable to request files through OneDrive API (unexpected)");
+        {
+            setlasterror("API calls (Preview) failed unexpectedly");
+            return false;
+        }
         return $arr['getUrl'];
     }
 }

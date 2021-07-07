@@ -68,6 +68,7 @@
     
     $db=NULL;
     $o_header=false;
+    $page_title='File Download Service';
 
     /* Check if the two files/directories are the same */
     function samefd($p1,$p2)
@@ -533,20 +534,20 @@ EOF;
         $size=0.0;
         $size=filesize($path);
         
-        $type=' Bytes';
-        if($size>=1024*1024*1024)
+        $type=' bytes';
+        if($size>=1000*1000*1000)
         {
-            $size/=1024*1024*1024;
+            $size/=1000*1000*1000;
             $type=' GB';
         }
-        else if($size>=1024*1024)
+        else if($size>=1000*1000)
         {
-            $size/=1024*1024;
+            $size/=1000*1000;
             $type=' MB';
         }
-        else if($size>=1024)
+        else if($size>=1000)
         {
-            $size/=1024;
+            $size/=1000;
             $type=' KB';
         }
         
@@ -555,6 +556,18 @@ EOF;
         else
             $str=sprintf("%1\$.2f",$size);
         return $str.$type;
+    }
+    
+    /* Get the modified time of a file/dir */
+    function getmodtime($path)
+    {
+        return filemtime($path);
+    }
+    
+    /* Format a timestamp */
+    function formatdate($time)
+    {
+        return strftime('%Y/%m/%d %H:%M:%S',$time);
     }
 
     /* Output an error message */
@@ -579,6 +592,7 @@ EOF;
             header("Pragma: no-cache");
             global $o_header;
             $o_header=true;
+            global $page_title;
 ?>
 <!DOCTYPE html>
 <!-- Code by mnihyc -->
@@ -588,7 +602,7 @@ EOF;
         <meta http-equiv="pragma" content="no-cache" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="<?php echo ROOT_DIR ?>/assets/bootstrap/css/bootstrap.min.css">
-        <title>File Download Service</title>
+        <title><?php echo $page_title ?></title>
     </head>
     
     <body>

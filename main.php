@@ -375,6 +375,8 @@
         
         /* Show the main page */
         ob_start();
+        /* Modify $page_title first */
+        $page_title=basename($opath).' - '.$page_title;
         htmlmsg();
         echo '<h1 class="text-center">Accessing \''.htmlentities(basename($opath)).'\' ......</h1>';
         
@@ -385,10 +387,11 @@
    <tr>
     <th class="d-table-cell">
      <div class="container">
-      <p class="lead text-center">File path: &nbsp; &nbsp; &nbsp; &nbsp; <?php echo htmlentities($opath); ?></p>
-      <p class="lead text-center">File size: &nbsp; &nbsp; &nbsp; &nbsp; <?php echo getfilesize($path); ?></p>
+      <p class="lead text-center">File path: &nbsp; &nbsp; <?php echo htmlentities($opath); ?></p>
+      <p class="lead text-center">Modified time: &nbsp; &nbsp; <?php echo formatdate(getmodtime($path)) ?></p>
+      <p class="lead text-center">File size: &nbsp; &nbsp; <?php echo getfilesize($path); ?></p>
       <?php $exs=getfilepass($opath,'fileextrainfo');if($exs!==FALSE){ ?>
-      <p class="lead text-center">Extra information: &nbsp; &nbsp; &nbsp; &nbsp; <?php echo $exs; ?></p>
+      <p class="lead text-center">Extra information: &nbsp; &nbsp; <?php echo $exs; ?></p>
                             <?php } ?>
      </div>
     </th>
@@ -430,6 +433,30 @@
   </tr></th></thead><tbody><tr></tr></tbody></table>
 </div>
 EOF;
+$fdstr=<<<EOF
+<div class="table-responsive-sm">
+ <table class="table table-striped table-sm"><thead><tr><th>
+   <table class="table table-borderless"><thead>
+    <tr>
+     <th>
+       <p class="text-center text-larger">Provided by %s</p>
+     </th>
+    </tr>
+    <tr>
+     <th class="t-table-cell">
+      <div class="container">
+       <p class="lead text-center">%s</p>
+      </div>
+     </th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr></tr>
+   </tbody>
+  </table>
+  </tr></th></thead><tbody><tr></tr></tbody></table>
+</div>
+EOF;
             foreach($down_order as $val)
                 if($val===1)
                     printf($dstr,$down_str[$val],getdownlink($opath,$passver,$inpasswd,'on'),getdownlink($opath,$passver,$inpasswd,'dn'));
@@ -440,6 +467,8 @@ EOF;
                     $lk2=\OneDrive\getlink($odpath);
                     if($lk1!==FALSE && $lk2!==FALSE)
                         printf($dstr,$down_str[$val],$lk1,$lk2);
+                    else
+                        printf($fdstr,$down_str[$val],\OneDrive\getlasterror());
                 }
                 else if($val===3)
                 {
@@ -469,8 +498,10 @@ EOF;
         
         /* Show the main page */
         ob_start();
-        htmlmsg();
         $dna=explode('/',$opath);
+        /* Modify $page_title first */
+        $page_title=$dna[count($dna)-2].'/ - '.$page_title;
+        htmlmsg();
         echo '<h1 class="text-center">Directory of \''.htmlentities($dna[count($dna)-2]).'\' ......</h1>';
         
         $pswdtxt='';
@@ -498,14 +529,15 @@ EOF;
    <tr>
     <th class="d-table-cell">
      <div class="container">
-      <p class="lead text-center">Directory path: &nbsp; &nbsp; &nbsp;<?php echo htmlentities($opath); ?></p>
+      <p class="lead text-center">Directory path: &nbsp; &nbsp; <?php echo htmlentities($opath); ?></p>
+      <p class="lead text-center">Modified time: &nbsp; &nbsp; <?php echo formatdate(getmodtime(__DIR__.FILE_DIR.$opath)) ?></p>
 <?php
         $endhtml='</div></th></tr></thead><tbody></tbody></table></div>';
         $exs=getdirpass($opath,'dirextrainfo');
         if($exs===FALSE)
             $exs='';
         else
-            $exs='<p class="lead text-center">Extra information: &nbsp; &nbsp; &nbsp; &nbsp; '.$exs.'</p>';
+            $exs='<p class="lead text-center">Extra information: &nbsp; &nbsp; '.$exs.'</p>';
         /* Have passed the verification, so show the elements inside */
         if(!$passver || ($passver && !$inpassver))
         {
@@ -515,7 +547,7 @@ EOF;
             {
                 /* Construct the html code */
                 /* There's nothing wrong so I don't need to optimize it */
-                $outhtml.='<tr><td><p class="text-center">'.'..'.'</p></td><td style="text-align:right;width:150px;">'.htmlentities('<DIR>').'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.getviewlink(dirname($opath),$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
+                $outhtml.='<tr><td><p class="text-center">..</p></td><td style="width:170px;"><p class="text-center">'.formatdate(getmodtime(__DIR__.FILE_DIR.dirname($opath))).'</p></td><td style="width:120px;"><p class="text-center">'.htmlentities('<DIR>').'</p></td><td style="width:100px;"><a class="btn btn-dark" role="button" href="'.getviewlink(dirname($opath),$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
             }
             $file=scandir($path);
             foreach($file as $val)
@@ -530,9 +562,9 @@ EOF;
                 
                 /* Construct the html code */
                 /* There's nothing wrong so I don't need to optimize it */
-                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="text-align:right;width:150px;">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</td><td style="width:150px;"><a class="btn btn-dark" role="button" href="'.getviewlink($fopath,$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
+                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="width:170px;"><p class="text-center">'.formatdate(getmodtime($fpath)).'</p></td><td style="width:120px;"><p class="text-center">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</p></td><td style="width:100px;"><a class="btn btn-dark" role="button" href="'.getviewlink($fopath,$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
             }
-            $endhtml='<p class="lead text-center">Number of items: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; '.strval($elecnt).'</p>'.$exs.$endhtml;
+            $endhtml='<p class="lead text-center">Number of items: &nbsp; &nbsp; '.strval($elecnt).'</p>'.$exs.$endhtml;
             $outhtml.='</tbody></table></div>';
         }
         else
