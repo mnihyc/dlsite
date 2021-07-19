@@ -4,9 +4,9 @@
 详细的设置可以在 [inc.php](https://github.com/mnihyc/dlsite/blob/master/inc.php) 里面找到。
 # 关于密码
 按照优先级升序  
-* 其中文件/目录的访问密码设置类似于 ```file/dirpass = ...```  
+* 其中文件/目录的访问密码（包括来自子目录的可能）设置类似于 ```file/dirpass = ...```  
 * 或者可以限定密码的有效范围仅为当前目录 ```curfile/dirpass = ...```  
-* 或者可以取消这个文件/目录的访问密码（包括来自子目录的可能） ```nofile/dirpass = yes```  
+* 或者可以取消这个文件/目录的访问密码 ```nofile/dirpass = yes```  
 * 或者可以取消当前文件/目录的访问密码（不对子目录生效） ```nocurfile/dirpass = yes```  
 * 或者可以设置子目录中的文件/目录的访问密码 ```subfile/dirpass = ...```  
 * 或者可以取消子目录中的文件/目录的访问密码 ```subnofile/dirpass = yes```  

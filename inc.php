@@ -128,6 +128,12 @@
         return $str;
     }
     
+    /* urlencode() a directory for API calls */
+    function encodeapidir($path)
+    {
+        return encodedir(str_replace(':','：',$path));
+    }
+    
     /* Check the password of the management page */
     function checkmanagepassword()
     {
@@ -302,6 +308,7 @@
         {
             $dbfile=__DIR__.CONFIG_FILE;
             $this->open($dbfile);
+            $this->busyTimeout(30000);
         }
         public function execwf($sql)
         {
@@ -361,7 +368,9 @@ EOF;
     function updaterefreshtoken($name,$type,$token)
     {
         global $db;
+        $db->execwf('BEGIN EXCLUSIVE TRANSACTION');
         $db->execwf("UPDATE CONFIG SET VALUE='{$db->escapeString($token)}' WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_refresh_token'");
+        $db->execwf('END TRANSACTION');
     }
     
     /* Get an access token of api.php */
@@ -383,8 +392,10 @@ EOF;
     function updateaccesstoken($name,$type,$time,$token)
     {
         global $db;
+        $db->execwf('BEGIN EXCLUSIVE TRANSACTION');
         $db->execwf("UPDATE CONFIG SET VALUE='{$db->escapeString($token)}' WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_access_token'");
         $db->execwf("UPDATE CONFIG SET VALUE='{$db->escapeString(strval($time))}' WHERE NAME='{$db->escapeString($name)}' AND TYPE='{$db->escapeString($type)}_expiry_time'");
+        $db->execwf('END TRANSACTION');
     }
     
     /* Get an array of TYPEs<->VALUEs in specific NAME */

@@ -149,8 +149,9 @@ namespace OneDrive
         $access_token=getaccesstoken();
         $req=new \Request;
         $req->setauth($access_token);
-        $path=\encodedir($path);
+        $path=\encodeapidir($path);
         $res=$req->get(PREURL."/me/drive/root:{$path}");
+        //var_export(PREURL."/me/drive/root:{$path}");var_export($res);
         if($req->httpcode==404)
         {
             setlasterror("404 File not found");
@@ -183,7 +184,7 @@ namespace OneDrive
         $access_token=getaccesstoken();
         $req=new \Request;
         $req->setauth($access_token);
-        $path=\encodedir($path);
+        $path=\encodeapidir($path);
         $loc=$req->getloc(PREURL."/me/drive/root:{$path}:/content");
         if($req->httpcode==404)
         {

@@ -9,7 +9,7 @@
     include_once 'api.php';
     
     /* Get the path as well as password(if exists) */
-    $opath=urldecode($_SERVER['REQUEST_URI']);
+    $opath=rawurldecode($_SERVER['REQUEST_URI']);
     $inpassver=false;$inpasswd='';
     if(($vpos=strpos($opath,'?'))!==FALSE)
     {
