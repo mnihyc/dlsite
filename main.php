@@ -550,6 +550,7 @@ EOF;
                 $outhtml.='<tr><td><p class="text-center">..</p></td><td style="width:170px;"><p class="text-center">'.formatdate(getmodtime(__DIR__.FILE_DIR.dirname($opath))).'</p></td><td style="width:120px;"><p class="text-center">'.htmlentities('<DIR>').'</p></td><td style="width:100px;"><a class="btn btn-dark" role="button" href="'.getviewlink(dirname($opath),$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
             }
             $file=scandir($path);
+            natcasesort($file);
             foreach($file as $val)
             {
                 /* Filter the filename */
@@ -562,10 +563,14 @@ EOF;
                 
                 /* Construct the html code */
                 /* There's nothing wrong so I don't need to optimize it */
-                $outhtml.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="width:170px;"><p class="text-center">'.formatdate(getmodtime($fpath)).'</p></td><td style="width:120px;"><p class="text-center">'.($ispd ? htmlentities('<DIR>') : getfilesize($fpath)).'</p></td><td style="width:100px;"><a class="btn btn-dark" role="button" href="'.getviewlink($fopath,$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
+                /* Show dirs before files */
+                if($ispd)
+                    $outhtmld.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="width:170px;"><p class="text-center">'.formatdate(getmodtime($fpath)).'</p></td><td style="width:120px;"><p class="text-center">'.htmlentities('<DIR>').'</p></td><td style="width:100px;"><a class="btn btn-dark" role="button" href="'.getviewlink($fopath,$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
+                else
+                    $outhtmlf.='<tr><td><p class="text-center">'.htmlentities($ispd ? $val.'/' : $val).'</p></td><td style="width:170px;"><p class="text-center">'.formatdate(getmodtime($fpath)).'</p></td><td style="width:120px;"><p class="text-center">'.getfilesize($fpath).'</p></td><td style="width:100px;"><a class="btn btn-dark" role="button" href="'.getviewlink($fopath,$passdown,$inpasswd).'" target="" style="width:64px;">Open</a></td></tr>'."\n";
             }
             $endhtml='<p class="lead text-center">Number of items: &nbsp; &nbsp; '.strval($elecnt).'</p>'.$exs.$endhtml;
-            $outhtml.='</tbody></table></div>';
+            $outhtml.=$outhtmld.$outhtmlf.'</tbody></table></div>';
         }
         else
             $endhtml=$exs.$endhtml;

@@ -546,19 +546,19 @@ EOF;
         $size=filesize($path);
         
         $type=' bytes';
-        if($size>=1000*1000*1000)
+        if($size>=1024*1024*1024)
         {
-            $size/=1000*1000*1000;
+            $size/=1024*1024*1024;
             $type=' GB';
         }
-        else if($size>=1000*1000)
+        else if($size>=1024*1024)
         {
-            $size/=1000*1000;
+            $size/=1024*1024;
             $type=' MB';
         }
-        else if($size>=1000)
+        else if($size>=1024)
         {
-            $size/=1000;
+            $size/=1024;
             $type=' KB';
         }
         
