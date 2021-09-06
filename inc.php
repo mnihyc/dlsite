@@ -131,7 +131,20 @@
     /* urlencode() a directory for API calls */
     function encodeapidir($path)
     {
-        return encodedir(str_replace(':','：',$path));
+        $r=array(
+            ':' => '：',
+            '?' => '？',
+            '!' => '！',
+            '%' => '％',
+            '"' => '＂',
+            '*' => '＊',
+            //'/' => '／', // Needed
+            '|' => '｜',
+            '<' => '＜',
+            '>' => '＞',
+            '\\' => '＼'
+        );
+        return encodedir(str_replace(array_keys($r),array_values($r),$path));
     }
     
     /* Check the password of the management page */
