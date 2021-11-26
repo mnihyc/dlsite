@@ -349,6 +349,7 @@
                     //header("Connection: Keep-Alive");
                 }
                 header('Content-Transfer-Encoding: binary');
+                ob_implicit_flush(true);
                 
                 /* Transfer data */
                 $fp=fopen('php://output','wb');
@@ -365,6 +366,7 @@
                         break;
                     if(fwrite($fp,$buf)===FALSE)
                         break;
+                    flush();
                     $bytes+=$nread;
                 }
                 fclose($fpl);
