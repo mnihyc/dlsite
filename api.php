@@ -6,7 +6,7 @@ namespace OneDrive
     // Follow instructions on "https://docs.microsoft.com/en-us/onedrive/developer/rest-api/getting-started/graph-oauth?view=odsp-graph-online" (Code flow) to get the following token(s).
     // Required scopes: offline_access Files.Read Files.Read.All Files.ReadWrite Files.ReadWrite.All
     // Do NOT share it with other applications!
-    // May also get the following token by rclone, and afterwards remove it from rclone
+    // May also get the following token by "rclone authorize"
     define('OneDrive\CLIENT_ID','');
     define('OneDrive\CLIENT_SECRET','');
     /* After having it initialized properly, please leave REFRESH_TOKEN blank */
@@ -102,7 +102,8 @@ namespace OneDrive
         if(!empty(getlasterror()))
             return false;
         $ret=\getaccesstoken(\_TOKEN_PREFIX,'OneDrive');
-        if($ret===false)
+        /* update when REFRESH_TOKEN is set or accesstoken not found */
+        if(!empty(REFRESH_TOKEN) || $ret===false)
         {
             $ret=\getrefreshtoken(\_TOKEN_PREFIX,'OneDrive');
             if(!empty(REFRESH_TOKEN))
